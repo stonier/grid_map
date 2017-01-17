@@ -47,14 +47,6 @@ public:
       cost_translation_table[i] = static_cast<DataType>(i);
     }
   }
-
-  template<typename DataType>
-  void apply(std::vector<DataType>& cost_translation_table) const {
-    cost_translation_table.resize(256);
-    for (unsigned int i = 0; i < cost_translation_table.size(); ++i ) {
-      cost_translation_table[i] = static_cast<DataType>(i);
-    }
-  }
 };
 
 /**
@@ -81,20 +73,6 @@ public:
       cost_translation_table[i] = char(1 + (97 * (i - 1)) / 251);
     }
   }
-
-  void apply(std::vector<float>& cost_translation_table) const {
-    cost_translation_table.resize(256);
-    cost_translation_table[0] = 0.0;     // costmap_2d::FREE_SPACE;
-    cost_translation_table[253] = 99.0;  // costmap_2d::INSCRIBED_INFLATED_OBSTACLE;
-    cost_translation_table[254] = 100.0; // costmap_2d::LETHAL_OBSTACLE
-    cost_translation_table[255] = -1.0;  // costmap_2d::NO_INFORMATION
-
-    // Regular cost values scale the range 1 to 252 (inclusive) to fit
-    // into 1 to 98 (inclusive).
-    for (int i = 1; i < 253; i++) {
-      cost_translation_table[i] = char(1 + (97 * (i - 1)) / 251);
-    }
-  }
 };
 
 template<typename DataType>
@@ -107,7 +85,15 @@ class Costmap2DDefaultTranslationTable<float> : public Costmap2DCenturyTranslati
 ** Converter
 *****************************************************************************/
 
-template<typename MapType>
+/**
+ * @brief Convert Costmap2DRos objects into cost or grid maps.
+ *
+ * @tparam MapType : either grid_map::GridMap or cost_map::CostMap
+ * @tparam TranslationTable : class that creates a cost -> new type conversion table
+ *
+ * @sa Costmap2DDirectTranslationTable, Costmap2DCenturyTranslationTable
+ */
+template<typename MapType, typename TranslationTable=Costmap2DDefaultTranslationTable<typename MapType::DataType>>
 class Costmap2DConverter
 {
 public:
@@ -119,18 +105,7 @@ public:
    **/
   Costmap2DConverter()
   {
-    initializeCostTranslationTable(Costmap2DDefaultTranslationTable<typename MapType::DataType>());
-  }
-
-  /**
-   * @brief Initialise the cost translation table with the user specified translation table functor.
-   *
-   * @param translation_table : user provided translation table
-   */
-  template <typename TranslationTable>
-  Costmap2DConverter(const TranslationTable& translation_table)
-  {
-    initializeCostTranslationTable(translation_table);
+    TranslationTable::create(costTranslationTable_);
   }
 
   virtual ~Costmap2DConverter()
@@ -356,11 +331,6 @@ public:
   }
 
 private:
-  template <typename TranslationTable>
-  void initializeCostTranslationTable(const TranslationTable& translation_table) {
-    translation_table.apply(costTranslationTable_);
-  }
-
   std::vector<typename MapType::DataType> costTranslationTable_;
 };
 /*****************************************************************************
