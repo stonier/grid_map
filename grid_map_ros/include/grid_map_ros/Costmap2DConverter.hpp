@@ -41,6 +41,14 @@ public:
   Costmap2DDirectTranslationTable() {}
 
   template<typename DataType>
+  static void create(std::vector<DataType>& cost_translation_table) {
+    cost_translation_table.resize(256);
+    for (unsigned int i = 0; i < cost_translation_table.size(); ++i ) {
+      cost_translation_table[i] = static_cast<DataType>(i);
+    }
+  }
+
+  template<typename DataType>
   void apply(std::vector<DataType>& cost_translation_table) const {
     cost_translation_table.resize(256);
     for (unsigned int i = 0; i < cost_translation_table.size(); ++i ) {
@@ -58,6 +66,21 @@ public:
 class Costmap2DCenturyTranslationTable {
 public:
   Costmap2DCenturyTranslationTable() {}
+
+  template<typename DataType>
+  static void create(std::vector<DataType>& cost_translation_table) {
+    cost_translation_table.resize(256);
+    cost_translation_table[0] = 0.0;     // costmap_2d::FREE_SPACE;
+    cost_translation_table[253] = 99.0;  // costmap_2d::INSCRIBED_INFLATED_OBSTACLE;
+    cost_translation_table[254] = 100.0; // costmap_2d::LETHAL_OBSTACLE
+    cost_translation_table[255] = -1.0;  // costmap_2d::NO_INFORMATION
+
+    // Regular cost values scale the range 1 to 252 (inclusive) to fit
+    // into 1 to 98 (inclusive).
+    for (int i = 1; i < 253; i++) {
+      cost_translation_table[i] = char(1 + (97 * (i - 1)) / 251);
+    }
+  }
 
   void apply(std::vector<float>& cost_translation_table) const {
     cost_translation_table.resize(256);
